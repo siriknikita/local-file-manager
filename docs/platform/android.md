@@ -16,9 +16,28 @@ The `AndroidFileService` class implements file operations using:
 ### Permissions
 
 Required permissions in `AndroidManifest.xml`:
-- `READ_EXTERNAL_STORAGE` (for Android 9 and below)
-- `WRITE_EXTERNAL_STORAGE` (for Android 9 and below)
+- `READ_EXTERNAL_STORAGE` (for Android 9-10, maxSdkVersion="32")
+- `WRITE_EXTERNAL_STORAGE` (for Android 9-10, maxSdkVersion="32")
 - `MANAGE_EXTERNAL_STORAGE` (for Android 11+)
+
+**Permission Request Behavior:**
+
+- **Android 9-10 (API 28-29)**: 
+  - Uses `Permission.storage` which covers both READ and WRITE
+  - Can be requested programmatically via standard permission dialog
+  - Permissions appear in app settings after granting
+
+- **Android 11+ (API 30+)**:
+  - Uses `MANAGE_EXTERNAL_STORAGE` permission
+  - **Cannot be requested programmatically** - must be enabled manually in system settings
+  - App automatically detects Android 11+ and guides users to Settings > Apps > [App Name] > Permissions
+  - Users must enable "Allow access to manage all files" toggle
+  - App checks permission status after user returns from settings
+
+**Permission Service:**
+- Location: `lib/data/services/permission_service.dart`
+- Automatically detects Android version and uses appropriate permission flow
+- Provides methods to check permission status, request permissions, and open settings
 
 ### Minimum SDK
 
@@ -27,9 +46,18 @@ Required permissions in `AndroidManifest.xml`:
 
 ### File Access
 
-1. **App-specific directories**: Always accessible
-2. **External storage**: Requires SAF or user permission
-3. **Media files**: Accessible via MediaStore
+1. **App-specific directories**: Always accessible (no permissions needed)
+2. **External storage**: 
+   - Android 9-10: Requires `READ_EXTERNAL_STORAGE` and `WRITE_EXTERNAL_STORAGE` permissions
+   - Android 11+: Requires `MANAGE_EXTERNAL_STORAGE` permission (enabled in system settings)
+3. **Media files**: Accessible via MediaStore (with appropriate permissions)
+4. **Root directory access**: App uses `getRootDirectories()` to get accessible directories instead of accessing '/' directly
+
+**Root Directories:**
+- App-specific documents directory
+- External storage directory (if available)
+- Downloads directory (if available)
+- Additional directories via Storage Access Framework (SAF)
 
 ### Limitations
 

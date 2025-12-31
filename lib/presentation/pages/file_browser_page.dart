@@ -5,6 +5,7 @@ import '../providers/file_browser_provider.dart';
 import '../providers/file_operations_provider.dart';
 import '../providers/selection_provider.dart';
 import '../providers/view_mode_provider.dart';
+import '../providers/providers.dart';
 import '../widgets/breadcrumb_navigation.dart';
 import '../widgets/file_grid_item.dart';
 import '../widgets/file_list_item.dart';
@@ -34,10 +35,40 @@ class _FileBrowserPageState extends ConsumerState<FileBrowserPage> {
 
   /// Loads the initial directory (root directories).
   Future<void> _loadInitialDirectory() async {
-    // TODO: Load root directories and navigate to first one
-    // For now, use a placeholder path
-    final notifier = ref.read(fileBrowserProvider.notifier);
-    await notifier.navigateToDirectory('/');
+    try {
+      // Get root directories from repository
+      final repository = ref.read(fileRepositoryProvider);
+      final rootDirectories = await repository.getRootDirectories();
+      
+      if (rootDirectories.isNotEmpty) {
+        // Navigate to the first available root directory
+        final notifier = ref.read(fileBrowserProvider.notifier);
+        await notifier.navigateToDirectory(rootDirectories.first);
+      } else {
+        // No root directories available, show error
+        final notifier = ref.read(fileBrowserProvider.notifier);
+        await notifier.navigateToDirectory('');
+        // Set error state
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No accessible directories found. Please grant storage permissions.'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Error loading root directories
+      final notifier = ref.read(fileBrowserProvider.notifier);
+      await notifier.navigateToDirectory('');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading directories: $e'),
+          ),
+        );
+      }
+    }
   }
 
   @override

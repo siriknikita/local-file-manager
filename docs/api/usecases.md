@@ -104,6 +104,24 @@ final destPath = await useCase(
 );
 ```
 
+### CheckPermissions
+Checks if storage permissions are granted.
+
+**Usage**:
+```dart
+final useCase = CheckPermissions(permissionService);
+final hasPermission = await useCase();
+```
+
+### RequestPermissions
+Requests storage permissions from the user.
+
+**Usage**:
+```dart
+final useCase = RequestPermissions(permissionService);
+final granted = await useCase();
+```
+
 ## Use Case Pattern
 
 All use cases follow this pattern:
