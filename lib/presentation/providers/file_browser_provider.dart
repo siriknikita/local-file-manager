@@ -101,5 +101,44 @@ class FileBrowserNotifier extends StateNotifier<FileBrowserState> {
       await navigateToDirectory(state.currentPath);
     }
   }
+
+  /// Gets the parent directory path from the current path.
+  ///
+  /// Returns the parent path, or null if already at root or path is invalid.
+  /// Handles edge cases like empty paths, root paths, and paths with trailing slashes.
+  String? getParentPath(String currentPath) {
+    if (currentPath.isEmpty) {
+      return null;
+    }
+
+    // Normalize path: remove trailing slashes
+    String normalizedPath = currentPath;
+    while (normalizedPath.endsWith('/') && normalizedPath.length > 1) {
+      normalizedPath = normalizedPath.substring(0, normalizedPath.length - 1);
+    }
+
+    if (normalizedPath.isEmpty || normalizedPath == '/') {
+      return null;
+    }
+
+    // Split path and get parent
+    final parts = normalizedPath.split('/').where((part) => part.isNotEmpty).toList();
+    
+    if (parts.isEmpty) {
+      // At root level
+      return null;
+    }
+
+    if (parts.length == 1) {
+      // One level deep, parent is root
+      return '/';
+    }
+
+    // Remove last part to get parent
+    parts.removeLast();
+
+    // Reconstruct parent path
+    return '/${parts.join('/')}';
+  }
 }
 

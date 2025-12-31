@@ -5,6 +5,7 @@ A fully free, clean, lightweight file manager for Android and iOS with no ads, n
 ## Features
 
 - **File Browsing**: Navigate directories with grid and list views
+- **Parent Directory Navigation**: Navigate up using the ".." entry at the top of directories
 - **File Operations**: Create, rename, delete, copy, and move files and folders
 - **Search**: Recursive filename search with filtering
 - **ZIP Support**: Create and extract ZIP archives
@@ -89,6 +90,7 @@ flutter pub get
 
 ### Features
 - [File Operations](docs/features/file_operations.md)
+- [Navigation](docs/features/navigation.md)
 - [Search](docs/features/search.md)
 - [ZIP Support](docs/features/zip_support.md)
 - [Storage Info](docs/features/storage_info.md)

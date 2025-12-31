@@ -7,19 +7,28 @@ class FileListItem extends StatelessWidget {
   /// Creates a new [FileListItem] instance.
   ///
   /// [fileItem] The file item to display.
+  /// [onTap] Callback when the item is tapped.
   const FileListItem({
     required this.fileItem,
+    this.onTap,
     super.key,
   });
 
   /// The file item to display.
   final FileItem fileItem;
 
+  /// Callback when the item is tapped.
+  final void Function(FileItem)? onTap;
+
   @override
   Widget build(BuildContext context) {
     return ListTile(
       leading: Icon(
-        fileItem.isDirectory ? Icons.folder : Icons.insert_drive_file,
+        fileItem.name == '..'
+            ? Icons.folder_outlined
+            : fileItem.isDirectory
+                ? Icons.folder
+                : Icons.insert_drive_file,
       ),
       title: Text(fileItem.name),
       subtitle: Text(
@@ -27,14 +36,16 @@ class FileListItem extends StatelessWidget {
             ? 'Directory'
             : '${_formatFileSize(fileItem.size)} • ${_formatDate(fileItem.modifiedDate)}',
       ),
-      onTap: () {
-        // TODO: Handle file/directory tap
-        if (fileItem.isDirectory) {
-          // Navigate to directory
-        } else {
-          // Open/preview file
-        }
-      },
+      onTap: onTap != null
+          ? () => onTap!(fileItem)
+          : () {
+              // TODO: Handle file/directory tap
+              if (fileItem.isDirectory) {
+                // Navigate to directory
+              } else {
+                // Open/preview file
+              }
+            },
       onLongPress: () {
         // TODO: Show context menu or enter selection mode
       },

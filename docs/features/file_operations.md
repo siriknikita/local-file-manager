@@ -2,6 +2,8 @@
 
 This document describes file operations available in Local File Manager.
 
+For information about directory navigation and browsing, see [Navigation Documentation](navigation.md).
+
 ## Supported Operations
 
 ### Create Folder

@@ -27,14 +27,16 @@ sequenceDiagram
 
 ## Example: Browsing a Directory
 
-1. **User Action**: User taps on a directory in the file browser
+1. **User Action**: User taps on a directory or the ".." parent directory entry in the file browser
 2. **Provider**: `FileBrowserNotifier` receives the action
+   - If ".." was tapped, `getParentPath()` calculates the parent directory path
 3. **Use Case**: `BrowseDirectory` is executed with the directory path
 4. **Repository**: `FileRepository.listFiles()` is called
 5. **Data Source**: `LocalFileDataSource.listFiles()` delegates to platform service
 6. **Platform Service**: `PlatformFileService.listFiles()` performs the actual file system operation
 7. **Response Flow**: Data flows back through the layers as domain entities
 8. **UI Update**: Provider updates state, UI rebuilds with new file list
+   - If not at root, a ".." entry is prepended to the file list for parent navigation
 
 ## State Management Flow
 
