@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+Always update relevant documentation in `docs/` folder when making code changes. Use mermaid diagrams for architecture and data flow documentation when applicable.
