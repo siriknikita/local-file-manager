@@ -65,6 +65,28 @@ Required permissions in `AndroidManifest.xml`:
 - Root access not supported
 - Some system directories are restricted
 
+### Error Handling
+
+The `AndroidFileService` implements comprehensive error handling for file operations:
+
+**Permission Errors:**
+- Detects `PathAccessException` with `errno == 13` (Permission denied)
+- Provides user-friendly error messages explaining that directories may be system-protected
+- Uses async `list()` instead of `listSync()` for better error handling
+- Skips inaccessible items when listing directories, allowing partial directory listings
+
+**Error Handling Strategy:**
+1. **Directory-level checks**: Verifies directory accessibility before attempting to list contents
+2. **Item-level handling**: Catches and skips individual inaccessible files/directories during listing
+3. **User-friendly messages**: Distinguishes between permission errors, non-existent directories, and other errors
+4. **Graceful degradation**: Returns partial results when some items are inaccessible
+
+**Implementation Details:**
+- Location: `lib/data/platform/android_file_service.dart`
+- Uses `_isDirectoryAccessible()` helper method to check directory accessibility
+- Async `dir.list()` allows streaming and per-item error handling
+- Error messages include context about system-protected directories
+
 ## Build Configuration
 
 See `android/app/build.gradle.kts` for build configuration:

@@ -51,28 +51,60 @@ class AndroidFileService implements PlatformFileService {
         throw Exception('Directory does not exist: $path');
       }
 
-      final List<FileItem> items = [];
-      final List<FileSystemEntity> entities = dir.listSync();
-
-      for (final FileSystemEntity entity in entities) {
-        final FileStat stat = await entity.stat();
-        final bool isDirectory = stat.type == FileSystemEntityType.directory;
-
-        items.add(
-          isDirectory
-              ? FileItem.directory(
-                  name: entity.path.split('/').last,
-                  path: entity.path,
-                  modifiedDate: stat.modified,
-                )
-              : FileItem.file(
-                  name: entity.path.split('/').last,
-                  path: entity.path,
-                  size: stat.size,
-                  mimeType: _getMimeType(entity.path),
-                  modifiedDate: stat.modified,
-                ),
+      // Check if directory is accessible before attempting to list
+      if (!await _isDirectoryAccessible(dir)) {
+        throw Exception(
+          'Permission denied: Cannot access directory "$path". This directory may be protected by the system.',
         );
+      }
+
+      final List<FileItem> items = [];
+
+      // Use async list() instead of listSync() for better error handling
+      try {
+        await for (final FileSystemEntity entity in dir.list()) {
+          try {
+            final FileStat stat = await entity.stat();
+            final bool isDirectory = stat.type == FileSystemEntityType.directory;
+
+            items.add(
+              isDirectory
+                  ? FileItem.directory(
+                      name: entity.path.split('/').last,
+                      path: entity.path,
+                      modifiedDate: stat.modified,
+                    )
+                  : FileItem.file(
+                      name: entity.path.split('/').last,
+                      path: entity.path,
+                      size: stat.size,
+                      mimeType: _getMimeType(entity.path),
+                      modifiedDate: stat.modified,
+                    ),
+            );
+          } on FileSystemException catch (e) {
+            // Skip individual items that can't be accessed
+            // This allows listing to continue even if some items are inaccessible
+            if (e.osError?.errorCode == 13) {
+              // Permission denied for this specific item, skip it
+              continue;
+            }
+            // Re-throw other file system exceptions
+            rethrow;
+          } catch (e) {
+            // Skip items that cause other errors during stat
+            continue;
+          }
+        }
+      } on FileSystemException catch (e) {
+        // Handle permission errors at the directory level
+        if (e.osError?.errorCode == 13) {
+          throw Exception(
+            'Permission denied: Cannot list contents of "$path". This directory may be protected by the system.',
+          );
+        }
+        // Re-throw other file system exceptions with context
+        throw Exception('Failed to list files in "$path": ${e.message}');
       }
 
       // Sort: directories first, then files, both alphabetically
@@ -83,8 +115,11 @@ class AndroidFileService implements PlatformFileService {
       });
 
       return items;
+    } on Exception {
+      // Re-throw our custom exceptions as-is
+      rethrow;
     } catch (e) {
-      throw Exception('Failed to list files: $e');
+      throw Exception('Failed to list files in "$path": $e');
     }
   }
 
@@ -273,6 +308,38 @@ class AndroidFileService implements PlatformFileService {
       } else if (entity is File) {
         await entity.copy('${destination.path}/${entity.path.split('/').last}');
       }
+    }
+  }
+
+  /// Checks if a directory is accessible for reading.
+  ///
+  /// Returns true if the directory can be accessed, false otherwise.
+  /// This method attempts to check directory accessibility by trying
+  /// to stat the directory and checking for permission errors.
+  Future<bool> _isDirectoryAccessible(Directory dir) async {
+    try {
+      if (!await dir.exists()) {
+        return false;
+      }
+
+      // Try to stat the directory to check if we have read access
+      try {
+        await dir.stat();
+        // If stat succeeds, the directory is at least partially accessible
+        // We'll let the actual list() call handle any remaining permission issues
+        return true;
+      } on FileSystemException catch (e) {
+        // Check if it's a permission error (errno 13)
+        if (e.osError?.errorCode == 13) {
+          return false;
+        }
+        // Other file system errors might be transient, assume accessible
+        // The actual list() call will handle these more precisely
+        return true;
+      }
+    } catch (e) {
+      // If any unexpected error occurs, assume not accessible
+      return false;
     }
   }
 

@@ -193,6 +193,51 @@ The `PermissionService` class provides a platform-agnostic interface for permiss
 
 ## Error Handling
 
+### Permission Errors During File Operations
+
+Even with proper permissions granted, some directories may still be inaccessible due to Android's security model. The app handles these gracefully:
+
+**File Listing Errors:**
+- **Permission denied (errno 13)**: Detected when attempting to list protected directories
+- **User-friendly messages**: Explains that directories may be system-protected
+- **Retry mechanism**: Users can retry or navigate back to accessible directories
+- **Partial listings**: If some items in a directory are inaccessible, accessible items are still shown
+
+**Error Display:**
+- Location: `lib/presentation/pages/file_browser_page.dart`
+- Shows clear error messages with icons (lock icon for permission errors)
+- Provides "Retry" button to attempt operation again
+- Provides "Go Back" button for permission errors to navigate to parent directory
+- Distinguishes between permission errors and other types of errors
+
+**Error Handling Flow:**
+
+```mermaid
+flowchart TD
+    A[Attempt Directory List] --> B{Directory Accessible?}
+    B -->|Yes| C[List Files]
+    B -->|No| D[Show Permission Error]
+    C --> E{Item Accessible?}
+    E -->|Yes| F[Add to List]
+    E -->|No| G[Skip Item]
+    F --> H{More Items?}
+    G --> H
+    H -->|Yes| E
+    H -->|No| I[Return Results]
+    D --> J[Show Error UI]
+    J --> K{User Action}
+    K -->|Retry| A
+    K -->|Go Back| L[Navigate to Parent]
+```
+
+**Implementation:**
+- `AndroidFileService.listFiles()` uses async listing with per-item error handling
+- `_isDirectoryAccessible()` checks directory accessibility before listing
+- Error messages are sanitized and made user-friendly
+- UI distinguishes between different error types
+
+### General Permission Errors
+
 - **Permission denied**: Shows dialog with retry option
 - **Permanently denied**: Shows dialog with option to open settings
 - **Platform errors**: Handled gracefully with user-friendly messages

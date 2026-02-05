@@ -118,9 +118,7 @@ class _FileBrowserPageState extends ConsumerState<FileBrowserPage> {
     }
 
     if (state.error != null) {
-      return Center(
-        child: Text('Error: ${state.error}'),
-      );
+      return _buildErrorWidget(state.error!, state.currentPath);
     }
 
     // Get parent path and create items list with ".." if needed
@@ -188,6 +186,97 @@ class _FileBrowserPageState extends ConsumerState<FileBrowserPage> {
     } else {
       // TODO: Open/preview file
     }
+  }
+
+  /// Builds the error widget with retry functionality.
+  Widget _buildErrorWidget(String error, String currentPath) {
+    final isPermissionError = _isPermissionError(error);
+    
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isPermissionError ? Icons.lock_outline : Icons.error_outline,
+              size: 64,
+              color: Colors.grey[600],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isPermissionError
+                  ? 'Access Denied'
+                  : 'Error Loading Directory',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _getUserFriendlyErrorMessage(error),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[700],
+                  ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                final notifier = ref.read(fileBrowserProvider.notifier);
+                notifier.refresh();
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+            if (isPermissionError) ...[
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () {
+                  // Navigate back to parent if possible
+                  final notifier = ref.read(fileBrowserProvider.notifier);
+                  final parentPath = notifier.getParentPath(currentPath);
+                  if (parentPath != null) {
+                    notifier.navigateToDirectory(parentPath);
+                  }
+                },
+                child: const Text('Go Back'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Checks if the error is permission-related.
+  bool _isPermissionError(String error) {
+    final lowerError = error.toLowerCase();
+    return lowerError.contains('permission denied') ||
+        lowerError.contains('access denied') ||
+        lowerError.contains('errno = 13') ||
+        lowerError.contains('protected by the system');
+  }
+
+  /// Gets a user-friendly error message from the error string.
+  String _getUserFriendlyErrorMessage(String error) {
+    if (_isPermissionError(error)) {
+      return 'This directory is protected by the system and cannot be accessed. '
+          'Some directories require special permissions that are not available to regular apps.';
+    }
+    
+    // Extract the meaningful part of the error message
+    if (error.contains('Directory does not exist')) {
+      return 'The directory no longer exists or has been moved.';
+    }
+    
+    if (error.contains('Failed to list files')) {
+      return 'Unable to read the contents of this directory. '
+          'It may be corrupted or inaccessible.';
+    }
+    
+    // Return a sanitized version of the error
+    return error.replaceAll('Exception: ', '').replaceAll('Failed to list files: ', '');
   }
 
   /// Builds the floating action button.
